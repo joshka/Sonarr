@@ -10234,6 +10234,9 @@
           "isSplitEpisode": {
             "type": "boolean"
           },
+          "isMiniSeries": {
+            "type": "boolean"
+          },
           "special": {
             "type": "boolean"
           },
