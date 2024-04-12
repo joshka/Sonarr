@@ -33,11 +33,9 @@ function AuthenticationRequiredModalContent(props) {
   const {
     authenticationMethod,
     authenticationRequired,
-    username,
-    password,
-    passwordConfirmation
+    users
   } = settings;
-
+  console.log('users', users);
   const authenticationEnabled = authenticationMethod && authenticationMethod.value !== 'none';
 
   const didMount = useRef(false);
@@ -98,41 +96,51 @@ function AuthenticationRequiredModalContent(props) {
                 />
               </FormGroup>
 
-              <FormGroup>
-                <FormLabel>{translate('Username')}</FormLabel>
+              {
+                users.value.map((user) => (
+                  <div key={user.id}>
+                    <FormGroup>
+                      <FormLabel>{translate('Username')}</FormLabel>
 
-                <FormInputGroup
-                  type={inputTypes.TEXT}
-                  name="username"
-                  onChange={onInputChange}
-                  helpTextWarning={username?.value ? undefined : translate('AuthenticationRequiredUsernameHelpTextWarning')}
-                  {...username}
-                />
-              </FormGroup>
+                      <FormInputGroup
+                        type={inputTypes.TEXT}
+                        name='username'
+                        onChange={onInputChange}
+                        helpTextWarning={user.username?.value ? undefined : translate('AuthenticationRequiredUsernameHelpTextWarning')}
+                        {...user.username}
+                      />
+                    </FormGroup>
 
-              <FormGroup>
-                <FormLabel>{translate('Password')}</FormLabel>
+                    <FormGroup>
+                      <FormLabel>{translate('Password')}</FormLabel>
 
-                <FormInputGroup
-                  type={inputTypes.PASSWORD}
-                  name="password"
-                  onChange={onInputChange}
-                  helpTextWarning={password?.value ? undefined : translate('AuthenticationRequiredPasswordHelpTextWarning')}
-                  {...password}
-                />
-              </FormGroup>
+                      <FormInputGroup
+                        type={inputTypes.PASSWORD}
+                        name={`password_${user.id}`}
+                        onChange={onInputChange}
+                        helpTextWarning={user.password?.value ? undefined : translate('AuthenticationRequiredPasswordHelpTextWarning')}
+                        {...user.password}
+                      />
+                    </FormGroup>
 
-              <FormGroup>
-                <FormLabel>{translate('PasswordConfirmation')}</FormLabel>
+                    <FormGroup>
+                      <FormLabel>{translate('PasswordConfirmation')}</FormLabel>
 
-                <FormInputGroup
-                  type={inputTypes.PASSWORD}
-                  name="passwordConfirmation"
-                  onChange={onInputChange}
-                  helpTextWarning={passwordConfirmation?.value ? undefined : translate('AuthenticationRequiredPasswordConfirmationHelpTextWarning')}
-                  {...passwordConfirmation}
-                />
-              </FormGroup>
+                      <FormInputGroup
+                        type={inputTypes.PASSWORD}
+                        name={`passwordConfirmation_${user.id}`}
+                        onChange={onInputChange}
+                        helpTextWarning={user.passwordConfirmation?.value ? undefined : translate('AuthenticationRequiredPasswordConfirmationHelpTextWarning')}
+                        {...user.passwordConfirmation}
+                      />
+                    </FormGroup>
+
+                    <input type="hidden" name={`userId_${user.id}`}
+                      value={user.id}
+                    />
+                  </div>
+                ))
+              }
             </div> :
             null
         }

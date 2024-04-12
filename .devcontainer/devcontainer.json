@@ -4,11 +4,8 @@
   "name": "Sonarr",
   "image": "mcr.microsoft.com/devcontainers/dotnet:1-6.0",
   "features": {
-    "ghcr.io/devcontainers/features/node:1": {
-      "nodeGypDependencies": true,
-      "version": "16",
-      "nvmVersion": "latest"
-    }
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/devcontainers-contrib/features/neovim-apt-get:1": {}
   },
   "forwardPorts": [8989],
   "customizations": {

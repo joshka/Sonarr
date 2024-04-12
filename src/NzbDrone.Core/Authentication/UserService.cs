@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Xml.Linq;
@@ -16,7 +17,7 @@ namespace NzbDrone.Core.Authentication
         User Add(string username, string password);
         User Update(User user);
         User Upsert(string username, string password);
-        User FindUser();
+        List<User> All();
         User FindUser(string username, string password);
         User FindUser(Guid identifier);
     }
@@ -58,7 +59,8 @@ namespace NzbDrone.Core.Authentication
 
         public User Upsert(string username, string password)
         {
-            var user = FindUser();
+            // TODO FIXME - this should be just using the username or perhaps the guid
+            var user = FindUser(username, password);
 
             if (user == null)
             {
@@ -75,9 +77,9 @@ namespace NzbDrone.Core.Authentication
             return Update(user);
         }
 
-        public User FindUser()
+        public List<User> All()
         {
-            return _repo.SingleOrDefault();
+            return _repo.All().ToList();
         }
 
         public User FindUser(string username, string password)

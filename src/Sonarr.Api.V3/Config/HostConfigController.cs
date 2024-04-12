@@ -1,10 +1,11 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
-using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Authentication;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Update;
@@ -42,13 +43,28 @@ namespace Sonarr.Api.V3.Config
             SharedValidator.RuleFor(c => c.UrlBase).ValidUrlBase();
             SharedValidator.RuleFor(c => c.InstanceName).StartsOrEndsWithSonarr();
 
-            SharedValidator.RuleFor(c => c.Username).NotEmpty().When(c => c.AuthenticationMethod == AuthenticationType.Basic ||
-                                                                          c.AuthenticationMethod == AuthenticationType.Forms);
-            SharedValidator.RuleFor(c => c.Password).NotEmpty().When(c => c.AuthenticationMethod == AuthenticationType.Basic ||
-                                                                          c.AuthenticationMethod == AuthenticationType.Forms);
+            // Username and password should not be empty for basic and forms authentication
+            SharedValidator.RuleForEach(c => c.Users)
+                .ChildRules(user =>
+                {
+                    user.RuleFor(u => u.Username).NotEmpty();
+                    user.RuleFor(u => u.Password).NotEmpty();
+                })
+                .When(c => c.AuthenticationMethod == AuthenticationType.Basic ||
+                        c.AuthenticationMethod == AuthenticationType.Forms);
 
-            SharedValidator.RuleFor(c => c.PasswordConfirmation)
-                .Must((resource, p) => IsMatchingPassword(resource)).WithMessage("Must match Password");
+            // Password should match password confirmation (or existing password if it exists)
+            SharedValidator.RuleForEach(c => c.Users)
+                .ChildRules(user =>
+                    user.RuleFor(c => c.PasswordConfirmation)
+                        .Must((resource, p) => IsMatchingPassword(resource)).WithMessage("Must match Password"));
+
+            // Usernames must be unique and there must be at least one user
+            SharedValidator.RuleFor(c => c.Users)
+                .NotEmpty()
+                .Must((resource, users) =>
+                    users.Select(u => u.Username).Distinct().Count() == users.Count)
+                .WithMessage("Usernames must be unique");
 
             SharedValidator.RuleFor(c => c.SslPort).ValidPort().When(c => c.EnableSsl);
             SharedValidator.RuleFor(c => c.SslPort).NotEqual(c => c.Port).When(c => c.EnableSsl);
@@ -84,16 +100,21 @@ namespace Sonarr.Api.V3.Config
             return cert != null;
         }
 
-        private bool IsMatchingPassword(HostConfigResource resource)
+        /// <summary>
+        /// Ensure either the password matches the stored password or the password matches the password confirmation.
+        /// </summary>
+        /// <param name="configUser"></param>
+        /// <returns></returns>
+        private bool IsMatchingPassword(HostConfigUser configUser)
         {
-            var user = _userService.FindUser();
+            var user = _userService.FindUser(configUser.Identifier);
 
-            if (user != null && user.Password == resource.Password)
+            if (user != null && user.Password == configUser.Password)
             {
                 return true;
             }
 
-            if (resource.Password == resource.PasswordConfirmation)
+            if (configUser.Password == configUser.PasswordConfirmation)
             {
                 return true;
             }
@@ -112,11 +133,30 @@ namespace Sonarr.Api.V3.Config
             var resource = _configFileProvider.ToResource(_configService);
             resource.Id = 1;
 
-            var user = _userService.FindUser();
+            var users = _userService.All() ?? new List<User>();
+            if (users.Count == 0)
+            {
+                users.Add(new User
+                {
+                    Identifier = Guid.NewGuid(),
+                    Username = "admin"
+                });
+                users.Add(new User
+                {
+                    Identifier = Guid.NewGuid(),
+                    Username = "user"
+                });
+            }
 
-            resource.Username = user?.Username ?? string.Empty;
-            resource.Password = user?.Password ?? string.Empty;
-            resource.PasswordConfirmation = string.Empty;
+            resource.Users = users
+                .Select(u => new HostConfigUser
+                {
+                    Identifier = u.Identifier,
+                    Username = u.Username,
+                    Password = u.Password,
+                    PasswordConfirmation = string.Empty
+                })
+                .ToList();
 
             return resource;
         }
@@ -131,10 +171,11 @@ namespace Sonarr.Api.V3.Config
             _configFileProvider.SaveConfigDictionary(dictionary);
             _configService.SaveConfigDictionary(dictionary);
 
-            if (resource.Username.IsNotNullOrWhiteSpace() && resource.Password.IsNotNullOrWhiteSpace())
-            {
-                _userService.Upsert(resource.Username, resource.Password);
-            }
+            // TODO FIXME - handle add/remove/chage properly
+            // if (resource.Username.IsNotNullOrWhiteSpace() && resource.Password.IsNotNullOrWhiteSpace())
+            // {
+            //     _userService.Upsert(resource.Username, resource.Password);
+            // }
 
             return Accepted(resource.Id);
         }

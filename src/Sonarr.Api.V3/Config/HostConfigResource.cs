@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using NzbDrone.Common.Http.Proxy;
 using NzbDrone.Core.Authentication;
 using NzbDrone.Core.Configuration;
@@ -17,9 +19,9 @@ namespace Sonarr.Api.V3.Config
         public AuthenticationType AuthenticationMethod { get; set; }
         public AuthenticationRequiredType AuthenticationRequired { get; set; }
         public bool AnalyticsEnabled { get; set; }
-        public string Username { get; set; }
-        public string Password { get; set; }
-        public string PasswordConfirmation { get; set; }
+
+        public List<HostConfigUser> Users { get; set; }
+
         public string LogLevel { get; set; }
         public string ConsoleLogLevel { get; set; }
         public string Branch { get; set; }
@@ -90,5 +92,13 @@ namespace Sonarr.Api.V3.Config
                 ApplicationUrl = configService.ApplicationUrl
             };
         }
+    }
+
+    public class HostConfigUser : RestResource
+    {
+        public Guid Identifier { get; set; }
+        public string Username { get; set; }
+        public string Password { get; set; }
+        public string PasswordConfirmation { get; set; }
     }
 }
